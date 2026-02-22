@@ -146,6 +146,9 @@ export default function Home() {
           <a href="#contact" className="text-sm text-[#888] hover:text-white transition-colors hidden sm:block">
             Contact
           </a>
+          <a href="/architecture" className="text-sm text-[#888] hover:text-white transition-colors hidden sm:block">
+            Architecture
+          </a>
           <a
             href="/admin"
             className="text-sm text-white flex items-center gap-1 hover:opacity-80 transition-opacity"
