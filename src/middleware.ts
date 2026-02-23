@@ -7,10 +7,13 @@ type SessionResponse = {
 };
 
 export async function middleware(request: NextRequest) {
+  // Use internal HTTP origin to avoid SSL issues on Railway
+  const internalOrigin = `http://localhost:${process.env.PORT || 3000}`;
+  
   const { data: session } = await betterFetch<SessionResponse>(
     "/api/auth/get-session",
     {
-      baseURL: request.nextUrl.origin,
+      baseURL: internalOrigin,
       headers: {
         cookie: request.headers.get("cookie") ?? "",
       },
