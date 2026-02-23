@@ -150,10 +150,16 @@ export default function Home() {
             Architecture
           </a>
           <a
-            href="/admin"
-            className="text-sm text-white flex items-center gap-1 hover:opacity-80 transition-opacity"
+            href="/login"
+            className="text-sm text-[#888] hover:text-white transition-colors hidden sm:block"
           >
-            Dashboard <ChevronRight size={14} />
+            Sign in
+          </a>
+          <a
+            href="/signup"
+            className="text-sm bg-[#FF6B35] hover:bg-[#e55a24] text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            Get started
           </a>
         </div>
       </nav>

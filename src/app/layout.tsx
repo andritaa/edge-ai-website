@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "Edge AI | AI agents that run locally",
@@ -41,7 +42,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-black text-white font-sans antialiased">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
