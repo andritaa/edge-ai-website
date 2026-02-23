@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { organization, admin } from "better-auth/plugins";
 import { Pool } from "pg";
 
 const pool = new Pool({
@@ -30,6 +31,10 @@ export const auth = betterAuth({
       },
     },
   },
+  plugins: [
+    organization(),
+    admin(),
+  ],
 });
 
 export type Session = typeof auth.$Infer.Session;
