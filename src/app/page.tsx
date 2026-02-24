@@ -1,8 +1,12 @@
 "use client";
 
-import { ArrowRight, ExternalLink, MessageCircle, X, Send, Shield, Code2, Bot, ChevronRight } from "lucide-react";
+import { ArrowRight, ExternalLink, MessageCircle, X, Send, Shield, Code2, Bot, ChevronRight,
+         Home as HomeIcon, Building2, BarChart3, Check, Star, Play, Lock, Server, Zap,
+         Mail, Github, Twitter, Linkedin } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
+import Navigation from "@/components/Navigation";
+import Logo from "@/components/Logo";
 
 /* ─── animation helpers ─── */
 const fadeUp = {
@@ -14,11 +18,66 @@ const stagger = {
   visible: { transition: { staggerChildren: 0.12 } },
 };
 
-/* ─── chatbot ─── */
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: "easeOut" as const } },
+};
+
+/* ─── typewriter effect ─── */
+function TypewriterText({
+  text,
+  delay = 0,
+  speed = 50,
+  className = ""
+}: {
+  text: string;
+  delay?: number;
+  speed?: number;
+  className?: string;
+}) {
+  const [displayText, setDisplayText] = useState("");
+  const [startTyping, setStartTyping] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setStartTyping(true), delay);
+    return () => clearTimeout(timer);
+  }, [delay]);
+
+  useEffect(() => {
+    if (!startTyping) return;
+
+    let i = 0;
+    const typingTimer = setInterval(() => {
+      if (i < text.length) {
+        setDisplayText(text.slice(0, i + 1));
+        i++;
+      } else {
+        clearInterval(typingTimer);
+      }
+    }, speed);
+
+    return () => clearInterval(typingTimer);
+  }, [startTyping, text, speed]);
+
+  return (
+    <span className={className}>
+      {displayText}
+      <motion.span
+        animate={{ opacity: [0, 1, 0] }}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        className="inline-block"
+      >
+        |
+      </motion.span>
+    </span>
+  );
+}
+
+/* ─── enhanced chatbot ─── */
 function Chatbot() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([
-    { role: "assistant", text: "Hi! I'm the Edge AI assistant. Ask me anything about our products, philosophy, or how we work." },
+    { role: "assistant", text: "Hi! I'm the Edge AI assistant. Ask me about our products, privacy-first approach, or how local AI can transform your business." },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -52,74 +111,107 @@ function Chatbot() {
 
   return (
     <>
-      {/* trigger */}
-      <button
+      {/* Sleeker trigger button */}
+      <motion.button
         onClick={() => setOpen(!open)}
-        className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-lg cursor-pointer"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-r from-[#FF6B35] to-[#e55a24] text-white rounded-full flex items-center justify-center shadow-lg border border-white/10 backdrop-blur-sm"
         aria-label="Toggle chat"
       >
-        {open ? <X size={20} /> : <MessageCircle size={20} />}
-      </button>
+        <motion.div
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        >
+          {open ? <X size={22} /> : <MessageCircle size={22} />}
+        </motion.div>
+      </motion.button>
 
-      {/* window */}
+      {/* Enhanced chat window */}
       {open && (
         <motion.div
-          initial={{ opacity: 0, y: 16, scale: 0.95 }}
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 16, scale: 0.95 }}
-          className="fixed bottom-20 right-6 z-50 w-[360px] max-w-[calc(100vw-48px)] h-[450px] max-h-[calc(100vh-120px)] bg-[#111] border border-[#222] rounded-xl flex flex-col overflow-hidden shadow-2xl"
+          exit={{ opacity: 0, y: 20, scale: 0.95 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="fixed bottom-24 right-6 z-50 w-[380px] max-w-[calc(100vw-48px)] h-[480px] max-h-[calc(100vh-140px)] bg-[#0a0a0a] border border-[#1a1a1a] rounded-2xl flex flex-col overflow-hidden shadow-2xl backdrop-blur-xl"
         >
-          {/* header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#222]">
-            <div>
-              <p className="text-sm font-medium">Edge AI Assistant</p>
-              <p className="text-xs text-[#666]">Powered by Claude</p>
+          {/* Header with gradient */}
+          <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[#FF6B35]/10 to-[#e55a24]/10 border-b border-[#1a1a1a]">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-[#FF6B35] to-[#e55a24] rounded-full flex items-center justify-center">
+                <Bot size={18} className="text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Edge AI Assistant</p>
+                <p className="text-xs text-[#666] flex items-center gap-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  Online
+                </p>
+              </div>
             </div>
-            <button onClick={() => setOpen(false)} className="text-[#666] hover:text-white cursor-pointer">
-              <X size={16} />
+            <button
+              onClick={() => setOpen(false)}
+              className="text-[#666] hover:text-white transition-colors p-1 rounded-full hover:bg-[#1a1a1a]"
+            >
+              <X size={18} />
             </button>
           </div>
 
-          {/* messages */}
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
             {messages.map((m, i) => (
-              <div
+              <motion.div
                 key={i}
-                className={`max-w-[85%] px-3.5 py-2.5 rounded-lg text-sm leading-relaxed ${
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.1 }}
+                className={`max-w-[90%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                   m.role === "user"
-                    ? "self-end bg-white text-black"
-                    : "self-start bg-[#1a1a1a] text-[#ccc]"
+                    ? "self-end bg-gradient-to-r from-[#FF6B35] to-[#e55a24] text-white shadow-lg"
+                    : "self-start bg-[#111] text-[#e5e5e5] border border-[#1a1a1a]"
                 }`}
               >
                 {m.text}
-              </div>
+              </motion.div>
             ))}
             {loading && (
-              <div className="self-start bg-[#1a1a1a] rounded-lg px-3.5 py-2.5 flex gap-1">
-                <span className="w-1.5 h-1.5 bg-[#666] rounded-full animate-pulse" />
-                <span className="w-1.5 h-1.5 bg-[#666] rounded-full animate-pulse [animation-delay:150ms]" />
-                <span className="w-1.5 h-1.5 bg-[#666] rounded-full animate-pulse [animation-delay:300ms]" />
-              </div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="self-start bg-[#111] border border-[#1a1a1a] rounded-2xl px-4 py-3 flex gap-1"
+              >
+                {[0, 1, 2].map((i) => (
+                  <motion.span
+                    key={i}
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                    className="w-2 h-2 bg-[#FF6B35] rounded-full"
+                  />
+                ))}
+              </motion.div>
             )}
             <div ref={endRef} />
           </div>
 
-          {/* input */}
-          <div className="flex gap-3 p-4 border-t border-[#222]">
+          {/* Enhanced input */}
+          <div className="flex gap-3 p-4 border-t border-[#1a1a1a] bg-[#0a0a0a]/50">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
-              placeholder="Ask anything..."
-              className="flex-1 bg-[#1a1a1a] border border-[#333] rounded-lg px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#444] placeholder:text-[#555]"
+              placeholder="Ask anything about Edge AI..."
+              className="flex-1 bg-[#111] border border-[#1a1a1a] rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#FF6B35]/50 focus:ring-1 focus:ring-[#FF6B35]/20 placeholder:text-[#555] transition-all"
             />
-            <button
+            <motion.button
               onClick={send}
               disabled={loading || !input.trim()}
-              className="bg-white text-black rounded-lg px-3.5 py-2.5 disabled:opacity-50 cursor-pointer hover:bg-gray-100 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="bg-gradient-to-r from-[#FF6B35] to-[#e55a24] text-white rounded-xl px-4 py-3 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
             >
               <Send size={16} />
-            </button>
+            </motion.button>
           </div>
         </motion.div>
       )}
@@ -129,254 +221,686 @@ function Chatbot() {
 
 /* ─── main page ─── */
 export default function Home() {
-  return (
-    <main className="min-h-screen bg-black text-white">
-      {/* nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 h-[60px] flex items-center justify-between bg-black/80 backdrop-blur-xl border-b border-white/5">
-        <a href="/" className="font-semibold text-base tracking-tight">
-          Edge AI
-        </a>
-        <div className="flex items-center gap-8">
-          <a href="#products" className="text-sm text-[#888] hover:text-white transition-colors hidden sm:block">
-            Products
-          </a>
-          <a href="#about" className="text-sm text-[#888] hover:text-white transition-colors hidden sm:block">
-            About
-          </a>
-          <a href="#contact" className="text-sm text-[#888] hover:text-white transition-colors hidden sm:block">
-            Contact
-          </a>
-          <a href="/architecture" className="text-sm text-[#888] hover:text-white transition-colors hidden sm:block">
-            Architecture
-          </a>
-          <a
-            href="/login"
-            className="text-sm text-[#888] hover:text-white transition-colors hidden sm:block"
-          >
-            Sign in
-          </a>
-          <a
-            href="/signup"
-            className="text-sm bg-[#FF6B35] hover:bg-[#e55a24] text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            Get started
-          </a>
-        </div>
-      </nav>
+  const [emailInput, setEmailInput] = useState("");
 
-      {/* hero */}
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Handle newsletter signup
+    console.log("Newsletter signup:", emailInput);
+    setEmailInput("");
+  };
+
+  return (
+    <main className="min-h-screen bg-black text-white overflow-x-hidden">
+      {/* Navigation */}
+      <Navigation variant="default" />
+
+      {/* Subtle background pattern */}
+      <div className="fixed inset-0 opacity-5 pointer-events-none">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)`,
+          backgroundSize: '32px 32px'
+        }} />
+      </div>
+
+      {/* Hero Section with Animated Gradient Text */}
       <motion.section
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true }}
         variants={stagger}
-        className="pt-[180px] pb-[120px] px-6 max-w-[900px] mx-auto"
+        className="relative pt-[140px] pb-[120px] px-6 max-w-[1000px] mx-auto"
       >
+        {/* Logo showcase */}
+        <motion.div
+          variants={fadeUp}
+          className="flex justify-center mb-12"
+        >
+          <Logo size="lg" className="h-16 w-auto" />
+        </motion.div>
+
         <motion.h1
           variants={fadeUp}
-          className="text-[clamp(48px,8vw,80px)] font-medium tracking-[-0.03em] leading-[1.05] mb-8 font-[family-name:var(--font-display)]"
+          className="text-[clamp(48px,8vw,88px)] font-bold tracking-[-0.04em] leading-[1.02] mb-8 text-center font-[family-name:var(--font-display)]"
         >
-          AI that runs
+          AI agents that run
           <br />
-          <span className="text-[#666]">on your hardware.</span>
+          <span className="bg-gradient-to-r from-[#FF6B35] via-[#ff8c5a] to-[#ffa366] bg-clip-text text-transparent">
+            <TypewriterText text="on your hardware" delay={1000} speed={80} />
+          </span>
         </motion.h1>
-        <motion.p variants={fadeUp} className="text-lg text-[#888] max-w-[480px] leading-relaxed mb-12">
-          We build autonomous agents using open-source models. No cloud. No data leaving your network.
-          We use the same technology to run our own business.
+
+        <motion.p
+          variants={fadeUp}
+          className="text-xl text-[#888] max-w-[600px] mx-auto text-center leading-relaxed mb-12"
+        >
+          Deploy autonomous AI agents powered by open-source models. No cloud dependencies.
+          Complete privacy. Your data never leaves your building.
         </motion.p>
-        <motion.div variants={fadeUp} className="flex gap-4 flex-wrap">
-          <a
+
+        <motion.div
+          variants={fadeUp}
+          className="flex gap-4 justify-center flex-wrap"
+        >
+          <motion.a
+            href="/signup"
+            whileHover={{ scale: 1.02, boxShadow: "0 20px 40px rgba(255, 107, 53, 0.3)" }}
+            whileTap={{ scale: 0.98 }}
+            className="bg-gradient-to-r from-[#FF6B35] to-[#e55a24] text-white px-8 py-4 rounded-xl font-medium inline-flex items-center gap-2 shadow-xl shadow-[#FF6B35]/20 border border-white/10"
+          >
+            Get Started <ArrowRight size={18} />
+          </motion.a>
+          <motion.a
             href="#products"
-            className="text-sm font-medium text-black bg-white px-6 py-3 rounded-md inline-flex items-center gap-2 hover:bg-gray-100 transition-colors"
+            whileHover={{ scale: 1.02, backgroundColor: "#1a1a1a" }}
+            whileTap={{ scale: 0.98 }}
+            className="border border-[#333] text-white px-8 py-4 rounded-xl font-medium hover:border-[#555] transition-all backdrop-blur-sm"
           >
-            View products <ArrowRight size={16} />
-          </a>
-          <a
-            href="#about"
-            className="text-sm font-medium text-white border border-[#333] px-6 py-3 rounded-md hover:border-[#555] transition-colors"
-          >
-            How it works
-          </a>
+            Learn More
+          </motion.a>
+        </motion.div>
+
+        {/* Trust indicators */}
+        <motion.div
+          variants={fadeUp}
+          className="flex justify-center items-center gap-8 mt-16 text-sm text-[#666]"
+        >
+          <div className="flex items-center gap-2">
+            <Shield size={16} className="text-[#FF6B35]" />
+            Privacy First
+          </div>
+          <div className="flex items-center gap-2">
+            <Code2 size={16} className="text-[#FF6B35]" />
+            Open Source
+          </div>
+          <div className="flex items-center gap-2">
+            <Server size={16} className="text-[#FF6B35]" />
+            Local Deployment
+          </div>
         </motion.div>
       </motion.section>
 
-      {/* pillars */}
-      <section className="border-t border-[#1a1a1a] py-20 px-6">
+      {/* Enhanced Product Cards Section */}
+      <section id="products" className="py-24 px-6 bg-[#0a0a0a] border-t border-[#1a1a1a]">
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
           variants={stagger}
-          className="max-w-[900px] mx-auto grid grid-cols-1 sm:grid-cols-3 gap-12"
+          className="max-w-[1200px] mx-auto"
         >
-          {[
-            { icon: <Shield size={20} className="text-[#444] mb-4" />, label: "Privacy", desc: "Data stays on your network. No external API calls." },
-            { icon: <Code2 size={20} className="text-[#444] mb-4" />, label: "Open Source", desc: "Models you can inspect, modify, and trust." },
-            { icon: <Bot size={20} className="text-[#444] mb-4" />, label: "Autonomous", desc: "Agents that act, not just respond." },
-          ].map((p) => (
-            <motion.div key={p.label} variants={fadeUp}>
-              {p.icon}
-              <p className="text-xs text-[#666] uppercase tracking-[0.1em] mb-2">{p.label}</p>
-              <p className="text-[15px] text-[#ccc] leading-relaxed">{p.desc}</p>
-            </motion.div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* products */}
-      <section id="products" className="py-20 px-6 bg-[#0a0a0a]">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={stagger}
-          className="max-w-[900px] mx-auto"
-        >
-          <motion.div variants={fadeUp}>
-            <p className="text-xs text-[#666] uppercase tracking-[0.1em] mb-4">Products</p>
-            <h2 className="text-[clamp(32px,5vw,48px)] font-medium tracking-[-0.02em] mb-16 font-[family-name:var(--font-display)]">
-              Two products.
+          <motion.div variants={fadeUp} className="text-center mb-20">
+            <p className="text-sm text-[#FF6B35] uppercase tracking-[0.15em] mb-6 font-medium">Products</p>
+            <h2 className="text-[clamp(36px,6vw,56px)] font-bold tracking-[-0.03em] mb-6 font-[family-name:var(--font-display)]">
+              Three products.
               <br />
-              <span className="text-[#666]">Same philosophy.</span>
+              <span className="text-[#666]">One philosophy.</span>
             </h2>
+            <p className="text-lg text-[#888] max-w-[600px] mx-auto">
+              AI solutions that respect your privacy while delivering enterprise-grade automation
+            </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <motion.a
-              variants={fadeUp}
-              href="https://ai.haba.casa"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group p-8 bg-[#111] rounded-lg border border-[#1a1a1a] hover:border-[#2a2a2a] transition-colors block"
-            >
-              <div className="flex justify-between items-start mb-6">
-                <span className="text-xs text-green-500 uppercase tracking-[0.1em]">Spaces</span>
-                <ExternalLink size={16} className="text-[#444] group-hover:text-[#666] transition-colors" />
-              </div>
-              <h3 className="text-2xl font-medium mb-3">Haba Casa</h3>
-              <p className="text-[15px] text-[#888] leading-relaxed">
-                AI for physical environments. Homes, offices, and factories that manage themselves.
-              </p>
-            </motion.a>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: <HomeIcon size={32} className="text-[#FF6B35]" />,
+                category: "Spaces",
+                name: "HabaCasa",
+                description: "Smart environments that manage themselves. Homes, offices, and factories with integrated AI automation.",
+                features: ["Voice control", "Energy optimization", "Predictive maintenance", "Privacy by design"],
+                link: "https://ai.haba.casa",
+                external: true,
+                color: "from-green-500/20 to-emerald-500/20",
+                badge: "Available Now"
+              },
+              {
+                icon: <Building2 size={32} className="text-[#FF6B35]" />,
+                category: "Business",
+                name: "AI Agency",
+                description: "Autonomous agents for operations. Customer support, scheduling, and complex workflows that run 24/7.",
+                features: ["Multi-channel support", "Workflow automation", "Integration ready", "Scalable deployment"],
+                link: "#",
+                external: false,
+                color: "from-blue-500/20 to-cyan-500/20",
+                badge: "Coming Soon"
+              },
+              {
+                icon: <BarChart3 size={32} className="text-[#FF6B35]" />,
+                category: "Analytics",
+                name: "Edge Analytics",
+                description: "Real-time insights and predictive analytics. Process data locally with enterprise-grade security.",
+                features: ["Real-time processing", "Custom dashboards", "Predictive models", "API integrations"],
+                link: "#",
+                external: false,
+                color: "from-purple-500/20 to-pink-500/20",
+                badge: "Beta"
+              }
+            ].map((product, i) => (
+              <motion.div
+                key={product.name}
+                variants={scaleIn}
+                whileHover={{ y: -8, scale: 1.02 }}
+                className="group relative bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-2xl border border-[#1a1a1a] p-8 hover:border-[#FF6B35]/30 transition-all duration-500 overflow-hidden"
+              >
+                {/* Background gradient */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${product.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
-            <motion.div
-              variants={fadeUp}
-              className="p-8 bg-[#111] rounded-lg border border-[#1a1a1a]"
-            >
-              <div className="mb-6">
-                <span className="text-xs text-amber-500 uppercase tracking-[0.1em]">Business</span>
-              </div>
-              <h3 className="text-2xl font-medium mb-3">The AI Agency</h3>
-              <p className="text-[15px] text-[#888] leading-relaxed">
-                Agents for operations. Support, scheduling, and workflows that run autonomously.
-              </p>
-            </motion.div>
+                <div className="relative z-10">
+                  {/* Header */}
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 bg-[#1a1a1a] rounded-xl flex items-center justify-center group-hover:bg-[#FF6B35]/10 transition-colors">
+                        {product.icon}
+                      </div>
+                      <div>
+                        <span className="text-xs text-[#888] uppercase tracking-[0.1em] block mb-1">{product.category}</span>
+                        <span className={`text-xs px-3 py-1 rounded-full ${
+                          product.badge === "Available Now" ? "bg-green-500/20 text-green-400" :
+                          product.badge === "Beta" ? "bg-yellow-500/20 text-yellow-400" :
+                          "bg-blue-500/20 text-blue-400"
+                        }`}>
+                          {product.badge}
+                        </span>
+                      </div>
+                    </div>
+                    {product.external && (
+                      <ExternalLink size={16} className="text-[#444] group-hover:text-[#FF6B35] transition-colors" />
+                    )}
+                  </div>
+
+                  <h3 className="text-2xl font-bold mb-4 group-hover:text-[#FF6B35] transition-colors">
+                    {product.name}
+                  </h3>
+                  <p className="text-[15px] text-[#ccc] leading-relaxed mb-6">
+                    {product.description}
+                  </p>
+
+                  {/* Features */}
+                  <ul className="space-y-2 mb-8">
+                    {product.features.map((feature, idx) => (
+                      <li key={idx} className="flex items-center gap-3 text-sm text-[#888]">
+                        <Check size={14} className="text-[#FF6B35] flex-shrink-0" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* CTA */}
+                  <motion.a
+                    href={product.link}
+                    {...(product.external && { target: "_blank", rel: "noopener noreferrer" })}
+                    whileHover={{ x: 4 }}
+                    className="inline-flex items-center gap-2 text-sm text-[#FF6B35] font-medium group-hover:text-white transition-colors"
+                  >
+                    {product.external ? "Explore" : "Learn More"}
+                    <ChevronRight size={14} />
+                  </motion.a>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </motion.div>
       </section>
 
-      {/* about + process */}
-      <section id="about" className="py-20 px-6 border-t border-[#1a1a1a]">
+      {/* How It Works - 3 Step Visual */}
+      <section className="py-24 px-6 border-t border-[#1a1a1a]">
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
           variants={stagger}
-          className="max-w-[900px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-20"
+          className="max-w-[1000px] mx-auto"
         >
-          <motion.div variants={fadeUp}>
-            <p className="text-xs text-[#666] uppercase tracking-[0.1em] mb-4">About</p>
-            <h2 className="text-[clamp(28px,4vw,40px)] font-medium tracking-[-0.02em] mb-6 font-[family-name:var(--font-display)]">
-              We use what
+          <motion.div variants={fadeUp} className="text-center mb-20">
+            <p className="text-sm text-[#FF6B35] uppercase tracking-[0.15em] mb-6 font-medium">How It Works</p>
+            <h2 className="text-[clamp(36px,6vw,48px)] font-bold tracking-[-0.03em] mb-6 font-[family-name:var(--font-display)]">
+              Deploy in minutes.
               <br />
-              we build.
+              <span className="text-[#666]">Scale with confidence.</span>
             </h2>
-            <p className="text-[15px] text-[#888] leading-[1.7] mb-4">
-              Our scheduling, customer support, and operations are managed by the same AI agents we
-              build for customers.
-            </p>
-            <p className="text-[15px] text-[#888] leading-[1.7] mb-8">
-              The assistant in the corner runs on our stack. Ask it anything.
-            </p>
-            <p className="text-xs text-[#666]">Powered by Claude</p>
           </motion.div>
 
-          <motion.div variants={fadeUp}>
-            <p className="text-xs text-[#666] uppercase tracking-[0.1em] mb-6">Process</p>
-            <div className="flex flex-col gap-6">
-              {[
-                { n: "01", title: "Deploy", desc: "Install on your hardware" },
-                { n: "02", title: "Connect", desc: "Link your systems and data" },
-                { n: "03", title: "Configure", desc: "Define goals and constraints" },
-                { n: "04", title: "Run", desc: "Monitor or let it operate" },
-              ].map((s) => (
-                <div key={s.n} className="flex gap-5">
-                  <span className="text-xs text-[#444] font-mono pt-0.5">{s.n}</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+            {/* Connection lines */}
+            <div className="hidden md:block absolute top-1/2 left-1/3 right-1/3 h-px bg-gradient-to-r from-[#FF6B35]/50 via-[#FF6B35] to-[#FF6B35]/50 transform -translate-y-1/2 z-0" />
+
+            {[
+              {
+                step: "01",
+                title: "Sign Up",
+                description: "Create your Edge AI account and choose your deployment plan",
+                icon: <Mail size={24} className="text-[#FF6B35]" />
+              },
+              {
+                step: "02",
+                title: "Deploy Edge Device",
+                description: "Install our lightweight agent on your hardware or cloud infrastructure",
+                icon: <Server size={24} className="text-[#FF6B35]" />
+              },
+              {
+                step: "03",
+                title: "AI Runs Locally",
+                description: "Your autonomous agents start working immediately with complete privacy",
+                icon: <Zap size={24} className="text-[#FF6B35]" />
+              }
+            ].map((step, i) => (
+              <motion.div
+                key={step.step}
+                variants={fadeUp}
+                className="relative z-10 text-center"
+              >
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  className="w-16 h-16 bg-gradient-to-r from-[#FF6B35] to-[#e55a24] rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-[#FF6B35]/30"
+                >
+                  {step.icon}
+                </motion.div>
+                <div className="mb-4">
+                  <span className="text-xs text-[#666] font-mono block mb-2">{step.step}</span>
+                  <h3 className="text-xl font-bold mb-3">{step.title}</h3>
+                  <p className="text-[15px] text-[#888] leading-relaxed max-w-[280px] mx-auto">
+                    {step.description}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Trust/Security Section */}
+      <section className="py-24 px-6 bg-[#0a0a0a] border-t border-[#1a1a1a]">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={stagger}
+          className="max-w-[1000px] mx-auto text-center"
+        >
+          <motion.div variants={fadeUp} className="mb-12">
+            <div className="w-20 h-20 bg-gradient-to-r from-[#FF6B35] to-[#e55a24] rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl shadow-[#FF6B35]/30">
+              <Lock size={32} className="text-white" />
+            </div>
+            <h2 className="text-[clamp(32px,5vw,44px)] font-bold tracking-[-0.03em] mb-6 font-[family-name:var(--font-display)]">
+              Your data never
+              <br />
+              <span className="text-[#FF6B35]">leaves your building</span>
+            </h2>
+            <p className="text-lg text-[#888] max-w-[600px] mx-auto leading-relaxed">
+              Complete privacy by design. All processing happens locally on your infrastructure.
+              No external API calls. No data collection. No exceptions.
+            </p>
+          </motion.div>
+
+          <motion.div
+            variants={stagger}
+            className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16"
+          >
+            {[
+              {
+                icon: <Shield size={24} className="text-[#FF6B35]" />,
+                title: "Zero External Dependencies",
+                description: "Models run entirely on your hardware with no internet requirements"
+              },
+              {
+                icon: <Lock size={24} className="text-[#FF6B35]" />,
+                title: "Enterprise Security",
+                description: "Bank-level encryption and security standards built into every component"
+              },
+              {
+                icon: <Server size={24} className="text-[#FF6B35]" />,
+                title: "Air-Gap Compatible",
+                description: "Deploy in completely isolated networks without compromising functionality"
+              }
+            ].map((feature, i) => (
+              <motion.div
+                key={i}
+                variants={fadeUp}
+                className="p-6 bg-[#111] rounded-xl border border-[#1a1a1a] hover:border-[#FF6B35]/30 transition-colors"
+              >
+                <div className="w-12 h-12 bg-[#1a1a1a] rounded-lg flex items-center justify-center mx-auto mb-4">
+                  {feature.icon}
+                </div>
+                <h3 className="font-semibold mb-3">{feature.title}</h3>
+                <p className="text-sm text-[#888] leading-relaxed">{feature.description}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </motion.div>
+      </section>
+
+      {/* Testimonials/Social Proof */}
+      <section className="py-24 px-6 border-t border-[#1a1a1a]">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={stagger}
+          className="max-w-[1200px] mx-auto"
+        >
+          <motion.div variants={fadeUp} className="text-center mb-20">
+            <p className="text-sm text-[#FF6B35] uppercase tracking-[0.15em] mb-6 font-medium">Trusted By</p>
+            <h2 className="text-[clamp(32px,5vw,44px)] font-bold tracking-[-0.03em] mb-6 font-[family-name:var(--font-display)]">
+              Trusted by <span className="text-[#FF6B35]">500+</span> environments
+            </h2>
+            <p className="text-lg text-[#888] max-w-[600px] mx-auto">
+              From smart homes to enterprise factories, organizations trust Edge AI for mission-critical automation
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              {
+                quote: "Edge AI transformed our smart building management. 40% energy savings in the first quarter.",
+                author: "Sarah Chen",
+                role: "Facilities Director",
+                company: "TechCorp",
+                avatar: "SC",
+                rating: 5
+              },
+              {
+                quote: "The privacy-first approach was exactly what we needed. Our data stays secure while AI does the heavy lifting.",
+                author: "Michael Torres",
+                role: "Security Chief",
+                company: "DataSafe Inc",
+                avatar: "MT",
+                rating: 5
+              },
+              {
+                quote: "Deployment was surprisingly simple. Our customer support is now 24/7 automated while maintaining quality.",
+                author: "Alex Kim",
+                role: "Operations VP",
+                company: "StartupXYZ",
+                avatar: "AK",
+                rating: 5
+              }
+            ].map((testimonial, i) => (
+              <motion.div
+                key={i}
+                variants={scaleIn}
+                whileHover={{ y: -4 }}
+                className="bg-[#0a0a0a] p-8 rounded-xl border border-[#1a1a1a] hover:border-[#FF6B35]/30 transition-all"
+              >
+                {/* Rating */}
+                <div className="flex gap-1 mb-4">
+                  {[...Array(testimonial.rating)].map((_, idx) => (
+                    <Star key={idx} size={14} className="text-[#FF6B35] fill-current" />
+                  ))}
+                </div>
+
+                <p className="text-[15px] text-[#ccc] leading-relaxed mb-6 italic">
+                  "{testimonial.quote}"
+                </p>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-[#FF6B35] to-[#e55a24] rounded-full flex items-center justify-center text-sm font-bold text-white">
+                    {testimonial.avatar}
+                  </div>
                   <div>
-                    <p className="text-[15px] font-medium mb-1">{s.title}</p>
-                    <p className="text-sm text-[#666]">{s.desc}</p>
+                    <p className="font-medium text-sm">{testimonial.author}</p>
+                    <p className="text-xs text-[#666]">{testimonial.role}, {testimonial.company}</p>
                   </div>
                 </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Pricing Preview */}
+      <section className="py-24 px-6 bg-[#0a0a0a] border-t border-[#1a1a1a]">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={stagger}
+          className="max-w-[1000px] mx-auto"
+        >
+          <motion.div variants={fadeUp} className="text-center mb-20">
+            <p className="text-sm text-[#FF6B35] uppercase tracking-[0.15em] mb-6 font-medium">Pricing</p>
+            <h2 className="text-[clamp(32px,5vw,44px)] font-bold tracking-[-0.03em] mb-6 font-[family-name:var(--font-display)]">
+              Simple, transparent pricing
+            </h2>
+            <p className="text-lg text-[#888] max-w-[600px] mx-auto">
+              Choose the plan that fits your needs. All plans include local deployment and full privacy.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                name: "Starter",
+                price: "$99",
+                period: "/month",
+                description: "Perfect for small teams and personal projects",
+                features: [
+                  "Up to 5 agents",
+                  "Basic integrations",
+                  "Email support",
+                  "Local deployment",
+                  "Open source models"
+                ],
+                cta: "Start Free Trial",
+                popular: false
+              },
+              {
+                name: "Pro",
+                price: "$299",
+                period: "/month",
+                description: "For growing businesses and advanced automation",
+                features: [
+                  "Unlimited agents",
+                  "Advanced integrations",
+                  "Priority support",
+                  "Custom models",
+                  "API access",
+                  "Analytics dashboard"
+                ],
+                cta: "Start Free Trial",
+                popular: true
+              },
+              {
+                name: "Enterprise",
+                price: "Custom",
+                period: "",
+                description: "For large organizations with complex requirements",
+                features: [
+                  "Everything in Pro",
+                  "Dedicated support",
+                  "Custom integrations",
+                  "SLA guarantees",
+                  "Training & onboarding",
+                  "Advanced security"
+                ],
+                cta: "Contact Sales",
+                popular: false
+              }
+            ].map((plan, i) => (
+              <motion.div
+                key={plan.name}
+                variants={scaleIn}
+                className={`relative p-8 rounded-2xl border transition-all ${
+                  plan.popular
+                    ? "border-[#FF6B35] bg-gradient-to-b from-[#FF6B35]/5 to-transparent scale-105"
+                    : "border-[#1a1a1a] bg-[#111] hover:border-[#333]"
+                }`}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <span className="bg-gradient-to-r from-[#FF6B35] to-[#e55a24] text-white text-sm px-4 py-2 rounded-full font-medium">
+                      Most Popular
+                    </span>
+                  </div>
+                )}
+
+                <div className="text-center mb-8">
+                  <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
+                  <div className="flex items-end justify-center gap-1 mb-2">
+                    <span className="text-4xl font-bold">{plan.price}</span>
+                    {plan.period && <span className="text-[#666] mb-1">{plan.period}</span>}
+                  </div>
+                  <p className="text-sm text-[#888]">{plan.description}</p>
+                </div>
+
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-center gap-3">
+                      <Check size={16} className="text-[#FF6B35] flex-shrink-0" />
+                      <span className="text-sm text-[#ccc]">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`w-full py-3 px-6 rounded-xl font-medium transition-all ${
+                    plan.popular
+                      ? "bg-gradient-to-r from-[#FF6B35] to-[#e55a24] text-white shadow-lg shadow-[#FF6B35]/20"
+                      : "bg-[#1a1a1a] text-white border border-[#333] hover:bg-[#222]"
+                  }`}
+                >
+                  {plan.cta}
+                </motion.button>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.p variants={fadeUp} className="text-center text-sm text-[#666] mt-12">
+            All plans include 30-day free trial • No setup fees • Cancel anytime
+          </motion.p>
+        </motion.div>
+      </section>
+
+      {/* Enhanced Footer with Newsletter */}
+      <footer className="py-16 px-6 border-t border-[#1a1a1a]">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={stagger}
+          className="max-w-[1200px] mx-auto"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            {/* Brand */}
+            <motion.div variants={fadeUp} className="md:col-span-1">
+              <Logo size="md" className="mb-6" />
+              <p className="text-sm text-[#888] leading-relaxed mb-6">
+                AI agents that respect your privacy while delivering enterprise automation.
+              </p>
+              <div className="flex gap-4">
+                {[
+                  { icon: <Github size={18} />, href: "https://github.com/haba-create", label: "GitHub" },
+                  { icon: <Twitter size={18} />, href: "#", label: "Twitter" },
+                  { icon: <Linkedin size={18} />, href: "#", label: "LinkedIn" }
+                ].map((social, i) => (
+                  <motion.a
+                    key={social.label}
+                    href={social.href}
+                    whileHover={{ scale: 1.1, y: -2 }}
+                    className="w-10 h-10 bg-[#1a1a1a] rounded-lg flex items-center justify-center text-[#666] hover:text-[#FF6B35] hover:bg-[#222] transition-all"
+                    aria-label={social.label}
+                  >
+                    {social.icon}
+                  </motion.a>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Products */}
+            <motion.div variants={fadeUp}>
+              <h4 className="font-semibold mb-6">Products</h4>
+              <ul className="space-y-3">
+                {["HabaCasa", "AI Agency", "Edge Analytics"].map((item) => (
+                  <li key={item}>
+                    <a href="#" className="text-sm text-[#888] hover:text-white transition-colors">
+                      {item}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+
+            {/* Company */}
+            <motion.div variants={fadeUp}>
+              <h4 className="font-semibold mb-6">Company</h4>
+              <ul className="space-y-3">
+                {["About", "Architecture", "Security", "Contact"].map((item) => (
+                  <li key={item}>
+                    <a href="#" className="text-sm text-[#888] hover:text-white transition-colors">
+                      {item}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+
+            {/* Newsletter */}
+            <motion.div variants={fadeUp}>
+              <h4 className="font-semibold mb-6">Stay Updated</h4>
+              <p className="text-sm text-[#888] mb-4">
+                Get the latest updates on Edge AI development and releases.
+              </p>
+              <form onSubmit={handleNewsletterSubmit} className="flex flex-col gap-3">
+                <input
+                  type="email"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="Enter your email"
+                  className="bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-3 text-sm text-white outline-none focus:border-[#FF6B35]/50 focus:ring-1 focus:ring-[#FF6B35]/20 placeholder:text-[#555]"
+                  required
+                />
+                <motion.button
+                  type="submit"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="bg-gradient-to-r from-[#FF6B35] to-[#e55a24] text-white py-3 px-4 rounded-lg font-medium transition-all shadow-lg shadow-[#FF6B35]/20"
+                >
+                  Subscribe
+                </motion.button>
+              </form>
+            </motion.div>
+          </div>
+
+          {/* Bottom bar */}
+          <motion.div
+            variants={fadeUp}
+            className="pt-8 border-t border-[#1a1a1a] flex flex-col md:flex-row justify-between items-center gap-4"
+          >
+            <p className="text-xs text-[#666]">
+              © {new Date().getFullYear()} Edge-AI LTD. All rights reserved.
+            </p>
+            <div className="flex gap-6">
+              {["Privacy Policy", "Terms of Service", "Cookie Policy"].map((item) => (
+                <a key={item} href="#" className="text-xs text-[#666] hover:text-white transition-colors">
+                  {item}
+                </a>
               ))}
             </div>
           </motion.div>
         </motion.div>
-      </section>
-
-      {/* CTA / contact */}
-      <section id="contact" className="py-20 px-6 bg-[#0a0a0a] text-center">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={stagger}
-          className="max-w-[500px] mx-auto"
-        >
-          <motion.h2 variants={fadeUp} className="text-[32px] font-medium tracking-[-0.02em] mb-4 font-[family-name:var(--font-display)]">
-            Get started
-          </motion.h2>
-          <motion.p variants={fadeUp} className="text-[15px] text-[#888] mb-8">
-            Explore the dashboard or talk to our assistant.
-          </motion.p>
-          <motion.div variants={fadeUp} className="flex gap-4 justify-center flex-wrap">
-            <a
-              href="/admin"
-              className="text-sm font-medium text-black bg-white px-6 py-3 rounded-md inline-flex items-center gap-2 hover:bg-gray-100 transition-colors"
-            >
-              Dashboard <ArrowRight size={16} />
-            </a>
-            <a
-              href="mailto:hello@edge-ai.space"
-              className="text-sm font-medium text-[#888] px-6 py-3 hover:text-white transition-colors"
-            >
-              Contact
-            </a>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* footer */}
-      <footer className="py-8 px-6 border-t border-[#1a1a1a]">
-        <div className="max-w-[900px] mx-auto flex justify-between items-center">
-          <span className="text-xs text-[#444]">© {new Date().getFullYear()} Edge AI Ltd</span>
-          <div className="flex gap-6">
-            <a
-              href="https://github.com/haba-create"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-[#666] hover:text-white transition-colors"
-            >
-              GitHub
-            </a>
-            <a href="mailto:hello@edge-ai.space" className="text-xs text-[#666] hover:text-white transition-colors">
-              Contact
-            </a>
-          </div>
-        </div>
       </footer>
 
-      {/* chatbot */}
+      {/* Enhanced Chatbot */}
       <Chatbot />
+
+      {/* Custom scrollbar styles */}
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #333;
+          border-radius: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+      `}</style>
     </main>
   );
 }
