@@ -1,10 +1,10 @@
 "use client";
 
-import { ArrowRight, ExternalLink, MessageCircle, X, Send, Shield, Code2, Bot, ChevronRight,
-         Home as HomeIcon, Building2, BarChart3, Check, Star, Play, Lock, Server, Zap,
+import { ArrowRight, ExternalLink, Shield, Code2, ChevronRight,
+         Home as HomeIcon, Building2, BarChart3, Check, Star, Lock, Server, Zap,
          Mail, Github, Twitter, Linkedin } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Logo from "@/components/Logo";
 
@@ -73,151 +73,6 @@ function TypewriterText({
   );
 }
 
-/* ─── enhanced chatbot ─── */
-function Chatbot() {
-  const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([
-    { role: "assistant", text: "Hi! I'm the Edge AI assistant. Ask me about our products, privacy-first approach, or how local AI can transform your business." },
-  ]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const endRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const send = async () => {
-    if (!input.trim() || loading) return;
-    const msg = input.trim();
-    setInput("");
-    setMessages((m) => [...m, { role: "user", text: msg }]);
-    setLoading(true);
-
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg }),
-      });
-      const data = await res.json();
-      setMessages((m) => [...m, { role: "assistant", text: data.reply || "Sorry, I couldn't process that." }]);
-    } catch {
-      setMessages((m) => [...m, { role: "assistant", text: "Something went wrong. Try again later." }]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <>
-      {/* Sleeker trigger button */}
-      <motion.button
-        onClick={() => setOpen(!open)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-r from-[#FF6B35] to-[#e55a24] text-white rounded-full flex items-center justify-center shadow-lg border border-white/10 backdrop-blur-sm"
-        aria-label="Toggle chat"
-      >
-        <motion.div
-          animate={{ rotate: open ? 180 : 0 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-        >
-          {open ? <X size={22} /> : <MessageCircle size={22} />}
-        </motion.div>
-      </motion.button>
-
-      {/* Enhanced chat window */}
-      {open && (
-        <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 20, scale: 0.95 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className="fixed bottom-24 right-6 z-50 w-[380px] max-w-[calc(100vw-48px)] h-[480px] max-h-[calc(100vh-140px)] bg-[#0a0a0a] border border-[#1a1a1a] rounded-2xl flex flex-col overflow-hidden shadow-2xl backdrop-blur-xl"
-        >
-          {/* Header with gradient */}
-          <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[#FF6B35]/10 to-[#e55a24]/10 border-b border-[#1a1a1a]">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-[#FF6B35] to-[#e55a24] rounded-full flex items-center justify-center">
-                <Bot size={18} className="text-white" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Edge AI Assistant</p>
-                <p className="text-xs text-[#666] flex items-center gap-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  Online
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => setOpen(false)}
-              className="text-[#666] hover:text-white transition-colors p-1 rounded-full hover:bg-[#1a1a1a]"
-            >
-              <X size={18} />
-            </button>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
-            {messages.map((m, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: i * 0.1 }}
-                className={`max-w-[90%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                  m.role === "user"
-                    ? "self-end bg-gradient-to-r from-[#FF6B35] to-[#e55a24] text-white shadow-lg"
-                    : "self-start bg-[#111] text-[#e5e5e5] border border-[#1a1a1a]"
-                }`}
-              >
-                {m.text}
-              </motion.div>
-            ))}
-            {loading && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="self-start bg-[#111] border border-[#1a1a1a] rounded-2xl px-4 py-3 flex gap-1"
-              >
-                {[0, 1, 2].map((i) => (
-                  <motion.span
-                    key={i}
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-                    className="w-2 h-2 bg-[#FF6B35] rounded-full"
-                  />
-                ))}
-              </motion.div>
-            )}
-            <div ref={endRef} />
-          </div>
-
-          {/* Enhanced input */}
-          <div className="flex gap-3 p-4 border-t border-[#1a1a1a] bg-[#0a0a0a]/50">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()}
-              placeholder="Ask anything about Edge AI..."
-              className="flex-1 bg-[#111] border border-[#1a1a1a] rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#FF6B35]/50 focus:ring-1 focus:ring-[#FF6B35]/20 placeholder:text-[#555] transition-all"
-            />
-            <motion.button
-              onClick={send}
-              disabled={loading || !input.trim()}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="bg-gradient-to-r from-[#FF6B35] to-[#e55a24] text-white rounded-xl px-4 py-3 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
-            >
-              <Send size={16} />
-            </motion.button>
-          </div>
-        </motion.div>
-      )}
-    </>
-  );
-}
 
 /* ─── main page ─── */
 export default function Home() {
@@ -882,8 +737,6 @@ export default function Home() {
         </motion.div>
       </footer>
 
-      {/* Enhanced Chatbot */}
-      <Chatbot />
 
       {/* Custom scrollbar styles */}
       <style jsx global>{`

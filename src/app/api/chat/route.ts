@@ -1,8 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { Pool } from "pg";
+import Anthropic from "@anthropic-ai/sdk";
 
-const AGENT_API_URL = process.env.AGENT_API_URL || "https://agent-api-production-d953.up.railway.app";
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
+// In-memory conversation history (with TTL)
+const conversationHistory = new Map<string, {
+  messages: Array<{ role: "user" | "assistant"; content: string }>;
+  lastActivity: number;
+}>();
+
+// Cleanup old conversations (1 hour TTL)
+const CONVERSATION_TTL = 60 * 60 * 1000; // 1 hour
+setInterval(() => {
+  const now = Date.now();
+  for (const [sessionId, data] of conversationHistory.entries()) {
+    if (now - data.lastActivity > CONVERSATION_TTL) {
+      conversationHistory.delete(sessionId);
+    }
+  }
+}, 15 * 60 * 1000); // Cleanup every 15 minutes
 
 // Database connection
 const pool = new Pool({
@@ -95,6 +115,10 @@ export async function POST(req: NextRequest) {
   try {
     const { message, sessionId } = await req.json();
 
+    if (!message?.trim()) {
+      return NextResponse.json({ reply: "Please enter a message." }, { status: 400 });
+    }
+
     // Extract session from request headers
     const session = await auth.api.getSession({
       headers: req.headers,
@@ -113,54 +137,65 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Prepare the request payload with user context
-    const payload = {
-      tenant: "edge-ai",
-      message,
-      sessionId: agentSessionId,
-      ...(userContext && {
-        user: {
-          id: userContext.id,
-          email: userContext.email,
-          name: userContext.name,
-          role: userContext.role,
-          organizationId: userContext.organizationId,
-          organizationName: userContext.organizationName,
-          products: userContext.products,
-          isAdmin: userContext.isAdmin,
-          permissions: {
-            canAccessAdmin: userContext.isAdmin,
-            canManageProducts: userContext.role === "owner" || userContext.role === "admin" || userContext.isAdmin,
-            canViewAnalytics: userContext.products.length > 0,
-            availableProducts: userContext.products.map(p => p.id),
-          },
-        },
-      }),
-    };
+    // Get or create conversation history
+    let conversation = conversationHistory.get(agentSessionId);
+    if (!conversation) {
+      conversation = { messages: [], lastActivity: Date.now() };
+      conversationHistory.set(agentSessionId, conversation);
+    }
 
-    const res = await fetch(`${AGENT_API_URL}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+    // Build system prompt with user context
+    const systemPrompt = buildSystemPrompt(userContext);
+
+    // Prepare messages for Anthropic
+    const messages: Array<{ role: "user" | "assistant"; content: string }> = [
+      ...conversation.messages,
+      { role: "user", content: message }
+    ];
+
+    // Call Anthropic API
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      temperature: 0.7,
+      system: systemPrompt,
+      messages: messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }))
     });
 
-    const data = await res.json();
+    const assistantReply = response.content[0]?.type === "text" ? response.content[0].text : "I apologize, but I couldn't generate a proper response. Please try again.";
 
-    // Add context to the response for debugging (only in development)
-    const response: any = { reply: data.reply || "Sorry, something went wrong." };
+    // Update conversation history
+    conversation.messages.push(
+      { role: "user", content: message },
+      { role: "assistant", content: assistantReply }
+    );
+    conversation.lastActivity = Date.now();
+
+    // Keep conversation history manageable (last 20 messages)
+    if (conversation.messages.length > 20) {
+      conversation.messages = conversation.messages.slice(-20);
+    }
+
+    // Prepare response
+    const responseData: any = { reply: assistantReply };
 
     if (process.env.NODE_ENV === "development" && userContext) {
-      response._debug = {
+      responseData._debug = {
         userContext: {
           email: userContext.email,
           role: userContext.role,
           products: userContext.products.length,
           isAdmin: userContext.isAdmin,
         },
+        sessionId: agentSessionId,
+        conversationLength: conversation.messages.length,
       };
     }
 
-    return NextResponse.json(response);
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error("Chat API error:", error);
     return NextResponse.json(
@@ -168,4 +203,54 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function buildSystemPrompt(userContext: UserContext | null): string {
+  const basePrompt = `You are the Edge AI assistant on edge-ai.space. You help users understand Edge AI products and services.
+
+**Our Products:**
+- **HabaCasa**: Smart environments that manage themselves. Homes, offices, and factories with integrated AI automation. Features voice control, energy optimization, predictive maintenance, and privacy by design.
+- **AI Agency**: Autonomous agents for business operations. Customer support, scheduling, and complex workflows that run 24/7. Multi-channel support, workflow automation, integration ready, scalable deployment.
+- **Edge Analytics**: Real-time insights and predictive analytics. Process data locally with enterprise-grade security. Real-time processing, custom dashboards, predictive models, API integrations.
+
+**Key Facts:**
+- AI runs on local hardware (Jetson devices)
+- Data never leaves the building - complete privacy
+- Edge-first architecture with no external dependencies
+- Open-source models running locally
+- Enterprise-grade security and encryption
+- Air-gap compatible deployments
+
+**Pricing:**
+- Starter: $99/month - Up to 5 agents, basic integrations, email support
+- Pro: $299/month - Unlimited agents, advanced integrations, priority support, custom models, API access
+- Enterprise: Custom pricing - Everything in Pro plus dedicated support, custom integrations, SLA guarantees
+
+**Your Role:**
+- Be concise, friendly, and professional
+- Use markdown for formatting when helpful
+- Guide users toward sign-up and demos when appropriate
+- Explain how local AI works and privacy benefits
+- For demo requests, collect: name, email, company, building type
+
+**Demo Collection:**
+When users want a demo, gather their information and confirm you'll be in touch soon.`;
+
+  if (userContext) {
+    const userInfo = `
+
+**Current User Context:**
+- Name: ${userContext.name || "N/A"}
+- Email: ${userContext.email}
+- Role: ${userContext.role}
+- Organization: ${userContext.organizationName || "No organization"}
+- Products: ${userContext.products.map(p => `${p.name} (${p.plan})`).join(", ") || "None"}
+- Admin Access: ${userContext.isAdmin ? "Yes" : "No"}
+
+You know this user is authenticated. Personalize responses appropriately and refer to their products when relevant.`;
+
+    return basePrompt + userInfo;
+  }
+
+  return basePrompt + "\n\nThis user is not authenticated. Encourage sign-up when appropriate.";
 }

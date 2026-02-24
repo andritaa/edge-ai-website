@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import Chatbot from "@/components/Chatbot";
 
 export const metadata: Metadata = {
   title: "Edge AI | AI agents that run locally",
@@ -42,7 +43,10 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-black text-white font-sans antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <Chatbot />
+        </Providers>
       </body>
     </html>
   );
