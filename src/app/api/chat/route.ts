@@ -7,14 +7,14 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-// In-memory conversation history (with TTL)
+// In-memory conversation history for anonymous users (with TTL)
 const conversationHistory = new Map<string, {
   messages: Array<{ role: "user" | "assistant"; content: string }>;
   lastActivity: number;
 }>();
 
-// Cleanup old conversations (1 hour TTL)
-const CONVERSATION_TTL = 60 * 60 * 1000; // 1 hour
+// Cleanup old anonymous conversations (1 hour TTL)
+const CONVERSATION_TTL = 60 * 60 * 1000;
 setInterval(() => {
   const now = Date.now();
   for (const [sessionId, data] of conversationHistory.entries()) {
@@ -22,7 +22,7 @@ setInterval(() => {
       conversationHistory.delete(sessionId);
     }
   }
-}, 15 * 60 * 1000); // Cleanup every 15 minutes
+}, 15 * 60 * 1000);
 
 // Database connection
 const pool = new Pool({
@@ -49,16 +49,12 @@ interface UserContext {
 async function getUserContext(userId: string): Promise<UserContext | null> {
   const client = await pool.connect();
   try {
-    // Get user basic info
     const userResult = await client.query('SELECT id, email, name FROM "user" WHERE id = $1', [userId]);
     if (userResult.rows.length === 0) return null;
 
     const user = userResult.rows[0];
-
-    // Check if user is admin
     const isAdmin = user.email?.includes("stephen") || user.email?.includes("admin") || user.id === "1";
 
-    // Get user's organization
     const orgResult = await client.query(`
       SELECT o.id, o.name, m.role
       FROM organization o
@@ -77,7 +73,6 @@ async function getUserContext(userId: string): Promise<UserContext | null> {
       role = orgResult.rows[0].role;
     }
 
-    // Get user's product access
     const productsResult = await client.query(`
       SELECT p.id, p.name, ps.plan, ps.status
       FROM product p
@@ -111,76 +106,120 @@ async function getUserContext(userId: string): Promise<UserContext | null> {
   }
 }
 
+async function loadConversationHistory(userId: string): Promise<Array<{ role: "user" | "assistant"; content: string }>> {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(`
+      SELECT role, content FROM "conversation_messages"
+      WHERE "userId" = $1
+      ORDER BY "createdAt" ASC
+      LIMIT 20
+    `, [userId]);
+    return result.rows.map(row => ({ role: row.role as "user" | "assistant", content: row.content }));
+  } catch (error) {
+    console.error("Error loading conversation history:", error);
+    return [];
+  } finally {
+    client.release();
+  }
+}
+
+async function saveMessages(
+  userId: string,
+  sessionId: string,
+  messages: Array<{ role: "user" | "assistant"; content: string; site: string }>
+): Promise<void> {
+  const client = await pool.connect();
+  try {
+    for (const msg of messages) {
+      await client.query(`
+        INSERT INTO "conversation_messages" ("userId", "sessionId", "role", "content", "site")
+        VALUES ($1, $2, $3, $4, $5)
+      `, [userId, sessionId, msg.role, msg.content, msg.site]);
+    }
+  } catch (error) {
+    console.error("Error saving messages:", error);
+  } finally {
+    client.release();
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { message, sessionId } = await req.json();
+    const { message, sessionId, site = "edge-ai" } = await req.json();
 
     if (!message?.trim()) {
       return NextResponse.json({ reply: "Please enter a message." }, { status: 400 });
     }
 
-    // Extract session from request headers
     const session = await auth.api.getSession({
       headers: req.headers,
     });
 
     let userContext: UserContext | null = null;
     let agentSessionId = sessionId || "web-anon";
+    let messages: Array<{ role: "user" | "assistant"; content: string }> = [];
 
     if (session?.user) {
-      // Get detailed user context with permissions
       userContext = await getUserContext(session.user.id);
 
       if (userContext) {
-        // Use authenticated user ID as session ID for consistency
         agentSessionId = `user-${session.user.id}`;
+        // Load last 20 messages from DB for authenticated users
+        messages = await loadConversationHistory(session.user.id);
       }
+    } else {
+      // Anonymous users: use in-memory fallback
+      let conversation = conversationHistory.get(agentSessionId);
+      if (!conversation) {
+        conversation = { messages: [], lastActivity: Date.now() };
+        conversationHistory.set(agentSessionId, conversation);
+      }
+      messages = conversation.messages;
     }
 
-    // Get or create conversation history
-    let conversation = conversationHistory.get(agentSessionId);
-    if (!conversation) {
-      conversation = { messages: [], lastActivity: Date.now() };
-      conversationHistory.set(agentSessionId, conversation);
-    }
-
-    // Build system prompt with user context
     const systemPrompt = buildSystemPrompt(userContext);
 
-    // Prepare messages for Anthropic
-    const messages: Array<{ role: "user" | "assistant"; content: string }> = [
-      ...conversation.messages,
+    const allMessages: Array<{ role: "user" | "assistant"; content: string }> = [
+      ...messages,
       { role: "user", content: message }
     ];
 
-    // Call Anthropic API
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 1000,
       temperature: 0.7,
       system: systemPrompt,
-      messages: messages.map(msg => ({
+      messages: allMessages.map(msg => ({
         role: msg.role,
         content: msg.content
       }))
     });
 
-    const assistantReply = response.content[0]?.type === "text" ? response.content[0].text : "I apologize, but I couldn't generate a proper response. Please try again.";
+    const assistantReply = response.content[0]?.type === "text"
+      ? response.content[0].text
+      : "I apologize, but I couldn't generate a proper response. Please try again.";
 
-    // Update conversation history
-    conversation.messages.push(
-      { role: "user", content: message },
-      { role: "assistant", content: assistantReply }
-    );
-    conversation.lastActivity = Date.now();
-
-    // Keep conversation history manageable (last 20 messages)
-    if (conversation.messages.length > 20) {
-      conversation.messages = conversation.messages.slice(-20);
+    if (session?.user && userContext) {
+      // Save to DB for authenticated users
+      await saveMessages(session.user.id, agentSessionId, [
+        { role: "user", content: message, site },
+        { role: "assistant", content: assistantReply, site },
+      ]);
+    } else {
+      // Update in-memory for anonymous users
+      const conversation = conversationHistory.get(agentSessionId)!;
+      conversation.messages.push(
+        { role: "user", content: message },
+        { role: "assistant", content: assistantReply }
+      );
+      conversation.lastActivity = Date.now();
+      if (conversation.messages.length > 20) {
+        conversation.messages = conversation.messages.slice(-20);
+      }
     }
 
-    // Prepare response
-    const responseData: any = { reply: assistantReply };
+    const responseData: Record<string, unknown> = { reply: assistantReply };
 
     if (process.env.NODE_ENV === "development" && userContext) {
       responseData._debug = {
@@ -191,7 +230,7 @@ export async function POST(req: NextRequest) {
           isAdmin: userContext.isAdmin,
         },
         sessionId: agentSessionId,
-        conversationLength: conversation.messages.length,
+        messagesLoaded: messages.length,
       };
     }
 

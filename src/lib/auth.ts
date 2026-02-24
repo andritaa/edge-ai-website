@@ -9,7 +9,11 @@ const pool = new Pool({
 
 export const auth = betterAuth({
   database: pool,
-  trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:3000"],
+  trustedOrigins: [
+    process.env.BETTER_AUTH_URL || "http://localhost:3000",
+    "https://www.haba.casa",
+    "https://haba.casa",
+  ],
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL,
   emailAndPassword: {

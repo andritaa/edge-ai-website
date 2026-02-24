@@ -128,6 +128,19 @@ CREATE INDEX IF NOT EXISTS "idx_product_role_userId" ON "product_role"("userId")
 CREATE INDEX IF NOT EXISTS "idx_product_role_organizationId" ON "product_role"("organizationId");
 CREATE INDEX IF NOT EXISTS "idx_product_role_productId" ON "product_role"("productId");
 
+-- Persistent cross-site chat history
+CREATE TABLE IF NOT EXISTS "conversation_messages" (
+  "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "userId" TEXT REFERENCES "user"("id") ON DELETE CASCADE,
+  "sessionId" TEXT NOT NULL,
+  "role" TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+  "content" TEXT NOT NULL,
+  "site" TEXT NOT NULL DEFAULT 'edge-ai',
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_conv_user ON "conversation_messages"("userId");
+CREATE INDEX IF NOT EXISTS idx_conv_session ON "conversation_messages"("sessionId");
+
 -- Seed initial products
 INSERT INTO "product" ("id", "name", "slug", "description", "icon", "url") VALUES
   ('habacasa', 'HabaCasa', 'habacasa', 'AI-native environment management for your space', '🏠', 'https://haba.casa'),
