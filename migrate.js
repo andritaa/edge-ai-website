@@ -4,7 +4,7 @@ const path = require('path');
 
 // Database connection
 const pool = new Pool({
-  connectionString: 'postgresql://postgres:ANnGjKINMbWMwNLVpjUjQwJsnJCvWhaX@hopper.proxy.rlwy.net:44512/railway',
+  connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
